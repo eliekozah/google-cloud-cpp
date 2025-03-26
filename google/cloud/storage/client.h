@@ -48,6 +48,82 @@
 
 
 
+/*
+#include "google/cloud/storage/client.h"
+#include "google/cloud/storage/options.h"
+#include "google/cloud/options.h"
+#include <iostream>
+#include <type_traits>
+#include <typeinfo>
+
+namespace gcs = google::cloud::storage;
+namespace gc = google::cloud;
+
+void DebugPrintIndividualOptions(gc::Options const& opts) {
+  if (opts.has<gc::UserProjectOption>()) {
+    std::cout << "UserProjectOption: " << opts.get<gc::UserProjectOption>() << "\n";
+  } else {
+    std::cout << "UserProjectOption: [not set]\n";
+  }
+  if (opts.has<gc::CustomHeadersOption>()) {
+    auto const& headers = opts.get<gc::CustomHeadersOption>();
+    std::cout << "CustomHeadersOption:\n";
+    for (auto const& kv : headers) {
+      std::cout << "  " << kv.first << ": " << kv.second << "\n";
+    }
+  } else {
+    std::cout << "CustomHeadersOption: [not set]\n";
+  }
+}
+
+template <typename T, typename = void>
+struct is_streamable : std::false_type {};
+
+template <typename T>
+struct is_streamable<T, std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>> : std::true_type {};
+
+template <typename T>
+void DebugPrintOneOption(std::ostream& os, T const& x) {
+  if constexpr (std::is_same_v<T, gc::Options>) {
+    DebugPrintIndividualOptions(x);
+  } else if constexpr (is_streamable<T>::value) {
+    os << x;
+  } else {
+    os << "[" << typeid(T).name() << " not streamable]";
+  }
+}
+
+template <typename... Options>
+void DebugPrintRawOptions(Options const&... opts) {
+  std::cout << "Number of raw options in pack: " << sizeof...(opts) << "\n";
+  ((DebugPrintOneOption(std::cout, opts), std::cout << "\n"), ...);
+}
+
+template <typename... Opt>
+gcs::ListObjectsReader ListObjects(std::string const& bucket_name, Opt&&... opt) {
+  DebugPrintRawOptions(opt...);
+  gc::internal::OptionsSpan const span(gcs::internal::MakeOptions(std::forward<Opt>(opt)...));
+  gcs::internal::ListObjectsRequest request(bucket_name);
+  request.set_multiple_options(std::forward<Opt>(opt)...);
+  std::cout << "Dumping stored options in request:\n";
+  request.DumpOptions(std::cout, "\n");
+  auto& client = connection_;
+  return google::cloud::internal::MakePaginationRange<gcs::ListObjectsReader>(
+      request,
+      [client](gcs::internal::ListObjectsRequest const& r) {
+        return client->ListObjects(r);
+      },
+      [](gcs::internal::ListObjectsResponse r) {
+        return std::move(r.items);
+      });
+}
+
+
+
+*/
+
+
+
 namespace google {
 namespace cloud {
 namespace storage {
