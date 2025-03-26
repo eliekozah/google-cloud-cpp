@@ -25,6 +25,7 @@ set(storage_client_integration_tests
     error_injection_integration_test.cc
     error_parsing_integration_test.cc
     bucket_acl_integration_test.cc
+    elie_test.cc
     grpc_bucket_metadata_integration_test.cc
     default_object_acl_integration_test.cc
     hmac_key_integration_test.cc

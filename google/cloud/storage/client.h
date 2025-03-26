@@ -44,6 +44,9 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <fstream>
+
+
 
 namespace google {
 namespace cloud {
@@ -1013,6 +1016,35 @@ class Client {
     return connection_->GetObjectMetadata(request);
   }
 
+
+  template <typename T, typename = void>
+  struct is_streamable : std::false_type {};
+
+  template <typename T>
+  struct is_streamable <
+    T,
+    std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>>
+    : std::true_type {};
+
+
+  template <typename T>
+  std::enable_if_t<is_streamable<T>::value, void>
+  debug_print_option(const T& t) {
+    std::cout << t;
+  }
+
+  template <typename T>
+  std::enable_if_t<!is_streamable<T>::value, void>
+  debug_print_option(const T&) {
+    std::cout << "[" << typeid(T).name() << " not streamable]";
+  }
+
+  template <typename... Options>
+  void DebugPrintOptions(const Options&... opts) {
+    std::cout << "Number of options: " << sizeof...(opts) << "\n";
+    ((debug_print_option(opts), std::cout << "\n"), ...);
+  }
+
   /**
    * Lists the objects in a bucket.
    *
@@ -1035,7 +1067,70 @@ class Client {
     google::cloud::internal::OptionsSpan const span(
         SpanOptions(std::forward<Options>(options)...));
     internal::ListObjectsRequest request(bucket_name);
+
+
+    // std::cout << "Options passed to ListObjects:" << std::endl;
+
+    // // Iterate through all options in the pack
+    // (
+    //     [&](auto&& opt) {
+    //       using OptionType = std::decay_t<decltype(opt)>;
+    //       std::cout << "  - Option Type: " << typeid(OptionType).name() << std::endl;
+
+    //       // Check if it's UserProjectOption and print value if it is
+    //       if constexpr (std::is_same_v<UserProjectOption, OptionType>) {
+    //         std::cout << "    - UserProjectOption: " <<  request.GetOption<UserProject>() << std::endl;
+    //       }
+    //        // Check if it's CustomHeadersOption and print value if it is
+    //       if constexpr (std::is_same_v<CustomHeadersOption, OptionType>) {
+    //           std::cout << "    - CustomHeadersOption: ";
+    //         for (const std::pair<std::string, std::string>& header : request.GetOption<CustomHeadersOption>()) {
+    //             std::cout << "(" << header.first << ", " << header.second << ") ";
+    //         }
+    //          std::cout << std::endl;
+    //       }
+
+    //     }(options), ...
+    // );
+
+
+      // if (hasUserProjectOption) {
+      //     std::cout << "Options: HAS Option User Project: " << std::endl;
+      // } else {
+      //     std::cout << "Options: HAS NO Option User Project: " << std::endl;
+      // }
+
+    // if (request.HasOption<UserProject>()) {
+    //   std::cout << "Before: HAS Option User Project: " <<  request.GetOption<UserProject>() << std::endl;
+    // } else {
+    //   std::cout << "Before: HAS NO Option User Project: " << std::endl;
+    // }
+    // std::cout << "Options " << std::endl;
+    // PrintOptions(options...);
+    // std::cout << "\n---------------------------------\n\n\n";
+
+    std::cout << "\n\n\n---------------------------------\n";
+    DebugPrintOptions(options...);
+    std::cout << "\n---------------------------------\n\n\n";
+
+    std::cout << "Options Before Copy " << std::endl;
+    std::cout << request;
+    std::cout << "\n---------------------------------\n\n\n";
+
+    //request.set_option(UserProject("elie_project"));
     request.set_multiple_options(std::forward<Options>(options)...);
+
+    std::cout << "Options After Copy " << std::endl;
+    std::cout << request;
+    std::cout << "\n---------------------------------\n\n\n";
+    //request.set_multiple_options(std::forward<Options>(options)...);
+
+    // if (request.HasOption<UserProject>()) {
+    //   std::cout << "After: HAS Option User Project: " <<  request.GetOption<UserProject>() << std::endl;
+    // } else {
+    //   std::cout << "After: HAS NO Option User Project: " << std::endl;
+    // }
+
     auto& client = connection_;
     return google::cloud::internal::MakePaginationRange<ListObjectsReader>(
         request,
@@ -1044,6 +1139,7 @@ class Client {
         },
         [](internal::ListObjectsResponse r) { return std::move(r.items); });
   }
+
 
   /**
    * Lists the objects and prefixes in a bucket.
